@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>Controle de Paredes - Jardim Bacabal</title>
 
+
 <style>
 
 body{
@@ -34,6 +35,7 @@ margin-bottom:20px;
 }
 
 select,button{
+
 background:#0f172a;
 color:#e5e7eb;
 border:1px solid #1e293b;
@@ -41,77 +43,126 @@ padding:10px 14px;
 border-radius:8px;
 cursor:pointer;
 font-weight:600;
+transition:0.2s;
+
 }
 
 button:hover{
+
 background:#1e293b;
+
 }
 
 .container{
+
 display:grid;
 grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
 gap:20px;
+
 }
 
 .lado{
+
 background:#020617;
 border-radius:12px;
 padding:15px;
 box-shadow:0 5px 15px rgba(0,0,0,0.7);
+
 }
 
 .lado h2{
+
 color:#38bdf8;
 margin-bottom:10px;
 font-size:18px;
+
 }
 
 .paredes{
+
 display:grid;
 grid-template-columns:repeat(2,1fr);
 gap:8px;
+
 }
 
 .parede{
+
 padding:8px;
 text-align:center;
 border-radius:6px;
 cursor:pointer;
 font-size:14px;
+transition:0.2s;
+
 }
 
 .falta{
+
 background:#0c1a5d;
 border:2px solid #000000;
+
 }
 
 .ok{
+
 background:#16a34a;
 border:2px solid #065f46;
+
+}
+
+.ok:hover{
+
+background:#22c55e;
+
+}
+
+.falta:hover{
+
+background:#1e3a8a;
+
 }
 
 .progressoBox{
+
 margin-top:25px;
+
 }
 
 .progressoTexto{
+
 margin-bottom:6px;
 font-size:14px;
 color:#94a3b8;
+
 }
 
 .progresso{
+
 height:20px;
 background:#0f172a;
 border-radius:10px;
 overflow:hidden;
 border:1px solid #1e293b;
+
 }
 
 .barra{
+
 height:100%;
 background:linear-gradient(90deg,#22c55e,#4ade80);
 width:0%;
+transition:0.3s;
+
+}
+
+.footer{
+
+margin-top:20px;
+text-align:center;
+font-size:12px;
+color:#64748b;
+
 }
 
 </style>
@@ -126,7 +177,7 @@ width:0%;
 
 <select id="bloco"></select>
 
-<button id="btnFiltro">Mostrar só faltando</button>
+<button id="btnFiltro" onclick="alternarFiltro()">Mostrar só faltando</button>
 
 <button onclick="relatorioDia()">Relatório do Dia</button>
 
@@ -146,39 +197,18 @@ width:0%;
 
 </div>
 
-<!-- FIREBASE -->
+<div class="footer">
+Sistema de Controle de Produção de Paredes
+</div>
 
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-
-import {
-getFirestore,
-doc,
-setDoc,
-onSnapshot
-}
-from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+<script>
 
 
-// COLE AQUI SUA CONFIG DO FIREBASE
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCziFzAapgFiT-1EcSmi0tO-lfwW1sq04I",
-  authDomain: "paredes-jb.firebaseapp.com",
-  databaseURL: "https://paredes-jb-default-rtdb.firebaseio.com",
-  projectId: "paredes-jb",
-  storageBucket: "paredes-jb.firebasestorage.app",
-  messagingSenderId: "860312827642",
-  appId: "1:860312827642:web:fffbc66a59d86132637b43",
-  measurementId: "G-92QMEBG902"
-};
+const OBRA="Jardim Bacabal"
+const ENGENHEIRO="Eng. Felipe Rodrigues"
 
-
-const app = initializeApp(firebaseConfig);
-
-const db = getFirestore(app);
-
+let mostrarFaltando=false
 
 const estrutura={
 
@@ -204,150 +234,214 @@ const estrutura={
 
 }
 
-
 const nomes={
-
 "Asuperior":"Lado A Superior",
 "Ainferior":"Lado A Inferior",
 "Bsuperior":"Lado B Superior",
 "Binferior":"Lado B Inferior",
 "Centro":"Centro"
-
 }
-
 
 for(let i=1;i<=30;i++){
 
 let op=document.createElement("option")
-
 op.value=i
-
 op.innerText="Bloco "+i
-
 document.getElementById("bloco").appendChild(op)
 
 }
 
+function hoje(){
 
-let status={}
-
-let blocoAtual=1
-
-
-function ouvirFirebase(){
-
-onSnapshot(doc(db,"blocos",String(blocoAtual)),(docSnap)=>{
-
-if(docSnap.exists()){
-
-status=docSnap.data()
-
-}else{
-
-status={}
+return new Date().toISOString().slice(0,10)
 
 }
 
-desenhar()
+function salvar(bloco,data){
 
-})
-
-}
-
-
-async function salvarFirebase(){
-
-await setDoc(
-
-doc(db,"blocos",String(blocoAtual)),
-
-status,
-
-{merge:true}
-
-)
+localStorage.setItem("bloco"+bloco,JSON.stringify(data))
 
 }
 
+function carregar(bloco){
+
+let d=localStorage.getItem("bloco"+bloco)
+return d?JSON.parse(d):{}
+
+}
 
 function desenhar(){
 
-let html=""
+let bloco=document.getElementById("bloco").value
+let status=carregar(bloco)
 
+let html=""
 let total=0
 let ok=0
-
 
 for(let area in estrutura){
 
 html+=`<div class="lado"><h2>${nomes[area]}</h2><div class="paredes">`
 
-
 estrutura[area].forEach((p,i)=>{
 
 let id=area+i
-
 let instalada=status[id]?.instalada
+
+if(mostrarFaltando && instalada) return
 
 let classe=instalada?"parede ok":"parede falta"
 
 if(instalada) ok++
-
 total++
-
 
 html+=`<div class="${classe}" onclick="toggle('${id}','${area}','${p}')">${p}</div>`
 
 })
 
-
 html+="</div></div>"
 
 }
 
-
 document.getElementById("areas").innerHTML=html
 
-
-let progresso=Math.round((ok/total)*100)
-
+let progresso=total?Math.round((ok/total)*100):0
 
 document.getElementById("barra").style.width=progresso+"%"
 
 document.getElementById("textoProgresso").innerText=
-
-`Progresso do Bloco: ${ok}/${total} (${progresso}%)`
+`Progresso do Bloco: ${ok} / ${total} paredes (${progresso}%)`
 
 }
 
+function toggle(id,area,parede){
 
-window.toggle=function(id,area,parede){
+let bloco=document.getElementById("bloco").value
+let status=carregar(bloco)
 
 if(!status[id]) status[id]={}
 
 status[id].instalada=!status[id].instalada
-
 status[id].parede=parede
-
 status[id].area=nomes[area]
+status[id].data=hoje()
 
-salvarFirebase()
+salvar(bloco,status)
+
+desenhar()
 
 }
 
+function alternarFiltro(){
 
-document.getElementById("bloco").addEventListener("change",(e)=>{
+mostrarFaltando=!mostrarFaltando
 
-blocoAtual=e.target.value
+document.getElementById("btnFiltro").innerText=
+mostrarFaltando?"Mostrar Todas":"Mostrar só faltando"
 
-ouvirFirebase()
+desenhar()
 
-})
+}
+
+function relatorioDia(){
+
+let bloco=document.getElementById("bloco").value
+let status=carregar(bloco)
+
+let texto=`OBRA: ${OBRA}
+GESTOR: ${ENGENHEIRO}
+DATA: ${hoje()}
+
+PAREDES INSTALADAS NO DIA
+
+`
+
+let total=0
+
+for(let area in nomes){
+
+let lista=[]
+
+for(let k in status){
+
+let s=status[k]
+
+if(s.instalada && s.data==hoje() && s.area==nomes[area]){
+
+lista.push(s.parede)
+
+}
+
+}
+
+if(lista.length){
+
+texto+=`${nomes[area]}: ${lista.join(", ")}\n\n`
+total+=lista.length
+
+}
+
+}
+
+texto+=`TOTAL: ${total} paredes`
+
+navigator.clipboard.writeText(texto)
+
+alert("Relatório copiado!")
+
+}
+
+function exportarExcel(){
+
+let bloco=document.getElementById("bloco").value
+let status=carregar(bloco)
+
+let linhas=[["OBRA",OBRA],["GESTOR",ENGENHEIRO],["DATA",hoje()],[],["AREA","PAREDE"]]
+
+for(let k in status){
+
+let s=status[k]
+
+if(s.instalada && s.data==hoje()){
+
+linhas.push([s.area,s.parede])
+
+}
+
+}
+
+let csv=linhas.map(l=>l.join(";")).join("\n")
+
+let blob=new Blob([csv])
+
+let a=document.createElement("a")
+
+a.href=URL.createObjectURL(blob)
+
+a.download="relatorio_paredes.csv"
+
+a.click()
+
+}
+
+document.getElementById("bloco").addEventListener("change",desenhar)
+
+document.getElementById("bloco").value=1
+
+desenhar()
 
 
-blocoAtual=1
-
-ouvirFirebase()
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyCziFzAapgFiT-1EcSmi0tO-lfwW1sq04I",
+  authDomain: "paredes-jb.firebaseapp.com",
+  databaseURL: "https://paredes-jb-default-rtdb.firebaseio.com",
+  projectId: "paredes-jb",
+  storageBucket: "paredes-jb.firebasestorage.app",
+  messagingSenderId: "860312827642",
+  appId: "1:860312827642:web:fffbc66a59d86132637b43",
+  measurementId: "G-92QMEBG902"
+};
 
 </script>
 
