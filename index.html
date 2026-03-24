@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Controle de Paredes - Jardim Bacabal</title>
+
+<style>
+
+body{
+font-family:Segoe UI,Arial;
+background:#020617;
+color:#e5e7eb;
+padding:20px;
+}
+
+h1{
+text-align:center;
+color:#38bdf8;
+margin-bottom:5px;
+}
+
+.sub{
+text-align:center;
+color:#94a3b8;
+margin-bottom:25px;
+}
+
+.topo{
+display:flex;
+flex-wrap:wrap;
+gap:10px;
+justify-content:center;
+margin-bottom:20px;
+}
+
+select,button{
+background:#0f172a;
+color:#e5e7eb;
+border:1px solid #1e293b;
+padding:10px 14px;
+border-radius:8px;
+cursor:pointer;
+font-weight:600;
+}
+
+button:hover{
+background:#1e293b;
+}
+
+.container{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+gap:20px;
+}
+
+.lado{
+background:#020617;
+border-radius:12px;
+padding:15px;
+box-shadow:0 5px 15px rgba(0,0,0,0.7);
+}
+
+.lado h2{
+color:#38bdf8;
+margin-bottom:10px;
+font-size:18px;
+}
+
+.paredes{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:8px;
+}
+
+.parede{
+padding:8px;
+text-align:center;
+border-radius:6px;
+cursor:pointer;
+font-size:14px;
+}
+
+.falta{
+background:#0c1a5d;
+border:2px solid #000000;
+}
+
+.ok{
+background:#16a34a;
+border:2px solid #065f46;
+}
+
+.progressoBox{
+margin-top:25px;
+}
+
+.progressoTexto{
+margin-bottom:6px;
+font-size:14px;
+color:#94a3b8;
+}
+
+.progresso{
+height:20px;
+background:#0f172a;
+border-radius:10px;
+overflow:hidden;
+border:1px solid #1e293b;
+}
+
+.barra{
+height:100%;
+background:linear-gradient(90deg,#22c55e,#4ade80);
+width:0%;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>Controle de Paredes</h1>
+<div class="sub">Obra: Jardim Bacabal | Gestor: Eng. Felipe Rodrigues</div>
+
+<div class="topo">
+
+<select id="bloco"></select>
+
+<button id="btnFiltro">Mostrar só faltando</button>
+
+<button onclick="relatorioDia()">Relatório do Dia</button>
+
+<button onclick="exportarExcel()">Exportar Excel</button>
+
+</div>
+
+<div class="container" id="areas"></div>
+
+<div class="progressoBox">
+
+<div class="progressoTexto" id="textoProgresso"></div>
+
+<div class="progresso">
+<div class="barra" id="barra"></div>
+</div>
+
+</div>
+
+<!-- FIREBASE -->
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+getFirestore,
+doc,
+setDoc,
+onSnapshot
+}
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+
+// COLE AQUI SUA CONFIG DO FIREBASE
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCziFzAapgFiT-1EcSmi0tO-lfwW1sq04I",
+  authDomain: "paredes-jb.firebaseapp.com",
+  databaseURL: "https://paredes-jb-default-rtdb.firebaseio.com",
+  projectId: "paredes-jb",
+  storageBucket: "paredes-jb.firebasestorage.app",
+  messagingSenderId: "860312827642",
+  appId: "1:860312827642:web:fffbc66a59d86132637b43",
+  measurementId: "G-92QMEBG902"
+};
+
+
+const app = initializeApp(firebaseConfig);
+
+const db = getFirestore(app);
+
+
+const estrutura={
+
+"Asuperior":[
+"Parede 16","Parede 03E","Parede 05E","Parede 08E","Parede 15E","Parede 07D","Parede 12E","Parede 13E","Parede 04D","Parede 02E","Parede 14E","Parede 04E","Parede 13E","Parede 12E","Parede 07E","Parede 11E","Parede 01E","Parede 06E","Parede 10E","Parede 09E"
+],
+
+"Ainferior":[
+"Parede 17E","Parede 08E","Parede 05E","Parede 03E","Parede 15D","Parede 07D","Parede 13D","Parede 12D","Parede 04D","Parede 14D","Parede 02E","Parede 04E","Parede 07E","Parede 13D","Parede 11D","Parede 12D","Parede 09E","Parede 10D","Parede 06E","Parede 01E"
+],
+
+"Bsuperior":[
+"Parede 16D","Parede 03D","Parede 05D","Parede 08D","Parede 15E","Parede 12E","Parede 13E","Parede 07E","Parede 04E","Parede 14E","Parede 02D","Parede 04D","Parede 17D","Parede 13E","Parede 12E","Parede 11E","Parede 06D","Parede 09D","Parede 10E"
+],
+
+"Binferior":[
+"Parede 17D","Parede 08D","Parede 05D","Parede 03D","Parede 07E","Parede 15D","Parede 12D","Parede 13D","Parede 02D","Parede 14D","Parede 04E","Parede 04D","Parede 07D","Parede 13D","Parede 12D","Parede 11D","Parede 09D","Parede 06D","Parede 01D","Parede 10D"
+],
+
+"Centro":[
+"Parede 18","Parede 19","Parede 20","Parede 21","Parede 22","Parede 23","Parede 24"
+]
+
+}
+
+
+const nomes={
+
+"Asuperior":"Lado A Superior",
+"Ainferior":"Lado A Inferior",
+"Bsuperior":"Lado B Superior",
+"Binferior":"Lado B Inferior",
+"Centro":"Centro"
+
+}
+
+
+for(let i=1;i<=30;i++){
+
+let op=document.createElement("option")
+
+op.value=i
+
+op.innerText="Bloco "+i
+
+document.getElementById("bloco").appendChild(op)
+
+}
+
+
+let status={}
+
+let blocoAtual=1
+
+
+function ouvirFirebase(){
+
+onSnapshot(doc(db,"blocos",String(blocoAtual)),(docSnap)=>{
+
+if(docSnap.exists()){
+
+status=docSnap.data()
+
+}else{
+
+status={}
+
+}
+
+desenhar()
+
+})
+
+}
+
+
+async function salvarFirebase(){
+
+await setDoc(
+
+doc(db,"blocos",String(blocoAtual)),
+
+status,
+
+{merge:true}
+
+)
+
+}
+
+
+function desenhar(){
+
+let html=""
+
+let total=0
+let ok=0
+
+
+for(let area in estrutura){
+
+html+=`<div class="lado"><h2>${nomes[area]}</h2><div class="paredes">`
+
+
+estrutura[area].forEach((p,i)=>{
+
+let id=area+i
+
+let instalada=status[id]?.instalada
+
+let classe=instalada?"parede ok":"parede falta"
+
+if(instalada) ok++
+
+total++
+
+
+html+=`<div class="${classe}" onclick="toggle('${id}','${area}','${p}')">${p}</div>`
+
+})
+
+
+html+="</div></div>"
+
+}
+
+
+document.getElementById("areas").innerHTML=html
+
+
+let progresso=Math.round((ok/total)*100)
+
+
+document.getElementById("barra").style.width=progresso+"%"
+
+document.getElementById("textoProgresso").innerText=
+
+`Progresso do Bloco: ${ok}/${total} (${progresso}%)`
+
+}
+
+
+window.toggle=function(id,area,parede){
+
+if(!status[id]) status[id]={}
+
+status[id].instalada=!status[id].instalada
+
+status[id].parede=parede
+
+status[id].area=nomes[area]
+
+salvarFirebase()
+
+}
+
+
+document.getElementById("bloco").addEventListener("change",(e)=>{
+
+blocoAtual=e.target.value
+
+ouvirFirebase()
+
+})
+
+
+blocoAtual=1
+
+ouvirFirebase()
+
+</script>
+
+</body>
+</html>
